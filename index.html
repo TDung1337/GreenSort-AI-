@@ -543,32 +543,58 @@ function runSimulation(){
 }
 
 function analyze(){
-  if(!imgBase64)return;
-  g('btnAnalyze').disabled=true;
-  g('resultSection').style.display='none';
-  g('detectCard').style.display='none';
-  g('errBox').style.display='none';
-  startScan();
-  var VI=lang==='vi';
-  var fullPrompt=VI
-    ?'Phân tích ảnh này và trả về CHỈ JSON, không giải thích gì thêm:\n{"object":"tên vật thể cụ thể bằng tiếng Việt","is_waste":true/false,"material":"chất liệu chính","category":"Chất thải hữu cơ|Chất thải tái chế|Chất thải nguy hại|Chất thải khó phân hủy|Không phải rác","instruction":"hướng dẫn xử lý ngắn gọn","tip":"mẹo hữu ích","confidence":85}\nNếu không phải rác (người, động vật, phong cảnh...) thì is_waste=false và category="Không phải rác".'
-    :'Analyze this image and return ONLY JSON, no extra text:\n{"object":"specific object name","is_waste":true/false,"material":"main material","category":"Organic Waste|Recyclable Waste|Hazardous Waste|General Waste|Not Waste","instruction":"short disposal instruction","tip":"useful tip","confidence":85}\nIf not waste (person, animal, scenery...) set is_waste=false and category="Not Waste".';
-  fetch('https://greensort-server.onrender.com/analyze',{   method:'POST',   headers:{     'Content-Type':'application/json'   },   body:JSON.stringify({     image: imgBase64,     mime: imgMime,     lang: lang   }) })
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:[
-      {type:'image',source:{type:'base64',media_type:imgMime,data:imgBase64}},
-      {type:'text',text:fullPrompt}
-    ]}]})
-  })
-  .then(function(res){if(!res.ok)throw new Error('HTTP '+res.status);return res.json();})
-  .then(function(data){
-    var raw=data.content.map(function(c){return c.text||'';}).join('').replace(/```[\w]*\s*|```\s*/g,'').trim();
-    var d;try{d=JSON.parse(raw);}catch(e){var m=raw.match(/\{[\s\S]*\}/);d=m?JSON.parse(m[0]):null;}
-    if(!d||!d.object)throw new Error('Parse failed');
-    stopScan(100);
-    showResult({object:d.object,material:d.material||'',category:d.category,instruction:d.instruction,tip:d.tip,confidence:d.confidence},true);
-  })
-  .catch(function(err){console.warn('GreenSort AI error, falling back to simulation:',err.message);runSimulation();});
+
+ if(!imgBase64) return;
+
+ g('btnAnalyze').disabled=true;
+ g('resultSection').style.display='none';
+ g('detectCard').style.display='none';
+ g('errBox').style.display='none';
+
+ startScan();
+
+ fetch('https://greensort-server.onrender.com/analyze',{
+   method:'POST',
+   headers:{
+     'Content-Type':'application/json'
+   },
+   body:JSON.stringify({
+     image: imgBase64,
+     mime: imgMime,
+     lang: lang
+   })
+ })
+
+ .then(function(res){
+   if(!res.ok) throw new Error("HTTP "+res.status);
+   return res.json();
+ })
+
+ .then(function(d){
+
+ var r = d.data || d;
+
+ stopScan(100);
+
+ showResult({
+   object:r.object,
+   material:r.material,
+   category:r.category,
+   instruction:r.instruction,
+   tip:r.tip,
+   confidence:r.confidence
+ },true);
+
+})
+
+ .catch(function(err){
+
+   console.log("AI error:",err);
+
+   runSimulation();
+
+ });
+
 }
 
 document.addEventListener('click',function(e){
@@ -624,3 +650,4 @@ applyLang();
 </body>
 
 </html>
+

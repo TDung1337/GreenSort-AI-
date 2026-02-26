@@ -542,6 +542,27 @@ function runSimulation(){
   showResult({object:item.object,material:item.material,category:VI?item.category_vi:item.category_en,instruction:VI?item.instruction_vi:item.instruction_en,tip:VI?item.tip_vi:item.tip_en,confidence:item.confidence},false);
 }
 
+function callAI(){
+
+ return fetch('https://greensort-server.onrender.com/analyze',{
+  method:'POST',
+  headers:{
+   'Content-Type':'application/json'
+  },
+  body:JSON.stringify({
+   image: imgBase64,
+   mime: imgMime,
+   lang: lang
+  })
+ })
+
+ .then(r=>{
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+ });
+
+}
+
 function analyze(){
 
  if(!imgBase64) return;
@@ -553,45 +574,63 @@ function analyze(){
 
  startScan();
 
- fetch('https://greensort-server.onrender.com/analyze',{
-   method:'POST',
-   headers:{
-     'Content-Type':'application/json'
-   },
-   body:JSON.stringify({
-     image: imgBase64,
-     mime: imgMime,
-     lang: lang
-   })
- })
-
- .then(function(res){
-   if(!res.ok) throw new Error("HTTP "+res.status);
-   return res.json();
- })
+ callAI()
 
  .then(function(d){
 
- var r = d.data || d;
+   var r = d.data || d;
 
- stopScan(100);
+   if(!r || !r.object){
+     throw new Error("Bad AI response");
+   }
 
- showResult({
-   object:r.object,
-   material:r.material,
-   category:r.category,
-   instruction:r.instruction,
-   tip:r.tip,
-   confidence:r.confidence
- },true);
+   stopScan(100);
 
-})
+   showResult({
+     object:r.object,
+     material:r.material,
+     category:r.category,
+     instruction:r.instruction,
+     tip:r.tip,
+     confidence:r.confidence
+   },true);
+
+ })
 
  .catch(function(err){
 
-   console.log("AI error:",err);
+   console.log("Retry AI...",err);
 
-   runSimulation();
+   setTimeout(function(){
+
+     callAI()
+
+     .then(function(d){
+
+       var r = d.data || d;
+
+       stopScan(100);
+
+       showResult({
+         object:r.object,
+         material:r.material,
+         category:r.category,
+         instruction:r.instruction,
+         tip:r.tip,
+         confidence:r.confidence
+       },true);
+
+     })
+
+     .catch(function(){
+
+       console.log("AI failed → Simulation");
+
+       runSimulation();
+
+     });
+
+   },2000);
 
  });
 
@@ -650,4 +689,3 @@ applyLang();
 </body>
 
 </html>
-

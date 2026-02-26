@@ -553,7 +553,7 @@ function analyze(){
   var fullPrompt=VI
     ?'Phân tích ảnh này và trả về CHỈ JSON, không giải thích gì thêm:\n{"object":"tên vật thể cụ thể bằng tiếng Việt","is_waste":true/false,"material":"chất liệu chính","category":"Chất thải hữu cơ|Chất thải tái chế|Chất thải nguy hại|Chất thải khó phân hủy|Không phải rác","instruction":"hướng dẫn xử lý ngắn gọn","tip":"mẹo hữu ích","confidence":85}\nNếu không phải rác (người, động vật, phong cảnh...) thì is_waste=false và category="Không phải rác".'
     :'Analyze this image and return ONLY JSON, no extra text:\n{"object":"specific object name","is_waste":true/false,"material":"main material","category":"Organic Waste|Recyclable Waste|Hazardous Waste|General Waste|Not Waste","instruction":"short disposal instruction","tip":"useful tip","confidence":85}\nIf not waste (person, animal, scenery...) set is_waste=false and category="Not Waste".';
-  fetch('https://api.anthropic.com/v1/messages',{
+  fetch('https://greensort-server.onrender.com/analyze',{   method:'POST',   headers:{     'Content-Type':'application/json'   },   body:JSON.stringify({     image: imgBase64,     mime: imgMime,     lang: lang   }) })
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:[
       {type:'image',source:{type:'base64',media_type:imgMime,data:imgBase64}},
@@ -622,4 +622,5 @@ g('fileCam').addEventListener('change',function(e){if(e.target.files[0])onFile(e
 applyLang();
 </script>
 </body>
+
 </html>

@@ -39,7 +39,7 @@ Required JSON Structure:
 }`;
 };
 
-/* ===== ROUTE PHÂN TÍCH AI ===== */
+/* ===== ROUTE PHÂN TÍCH AI (ĐÃ SỬA LỖI 400 & 404) ===== */
 app.post("/analyze", async (req, res) => {
   try {
     const { image, mime, lang = 'vi' } = req.body;
@@ -47,7 +47,7 @@ app.post("/analyze", async (req, res) => {
     if (!image) return res.status(400).json({ error: "No image provided" });
     if (!API_KEY) return res.status(500).json({ error: "API_KEY missing" });
 
-    // SỬA LỖI 404: Sử dụng endpoint v1 và model chuẩn ổn định
+    // Endpoint v1 ổn định để tránh lỗi 404
     const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
     const response = await fetch(API_URL, {
@@ -58,14 +58,14 @@ app.post("/analyze", async (req, res) => {
           parts: [
             { text: buildPrompt(lang) },
             {
-              inline_data: { // Sửa lỗi 400: Dùng snake_case cho REST API
+              inline_data: { // Sửa lỗi 400: dùng snake_case
                 mime_type: mime || "image/jpeg",
                 data: image
               }
             }
           ]
         }],
-        generation_config: { // Sửa lỗi 400: Loại bỏ responseMimeType gây xung đột
+        generation_config: { // Sửa lỗi 400: bỏ responseMimeType
           temperature: 0.1,
           max_output_tokens: 1024
         }
@@ -82,7 +82,6 @@ app.post("/analyze", async (req, res) => {
     let textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResponse) throw new Error("Empty AI response");
 
-    // Làm sạch JSON để tránh lỗi parse khi AI trả về markdown
     const cleanJson = textResponse.replace(/```json|```/g, "").trim();
     res.json(JSON.parse(cleanJson));
 
